@@ -16,18 +16,16 @@ contract('TestPresale', function (accounts) {
 
         // presale
         var start = unix
-        var period = 100000
-        PreSaleInstance = await PreSaleInterface.deployed(start, period, accounts[0], TokenInstance.address, 100);
+        var period = 1000000000000
+        PreSaleInstance = await PreSaleInterface.deployed(start, period, accounts[1], TokenInstance.address, 100);
         console.log(PreSaleInstance.address);
     });
 
     it("buy tokens increase balance", async () => {
         // let oldBalance = await TokenInstance.balanceOf(accounts[1]);
         // console.log(oldBalance);
-        console.log(accounts[1])
         await TokenInstance.addAdmin(PreSaleInstance.address, { from: accounts[0] })
-        console.log(accounts[1])
-        await PreSaleInstance.send({ value: 1e+17, from: accounts[1] })
+        await PreSaleInstance.send({ value: 200, from: accounts[1] })
         // let newBalance = await TokenInstance.balanceOf(accounts[1]);
         // console.log(newBalance);
     })
