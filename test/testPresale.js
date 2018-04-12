@@ -12,7 +12,7 @@ contract('TestPresale', function (accounts) {
 
     beforeEach(async () => {
         // token
-        TokenInstance = await RicoTokenInterface.deployed();
+        TokenInstance = await RicoTokenInterface.deployed({ from: accounts[0] });
 
         // presale
         var start = unix
@@ -20,14 +20,6 @@ contract('TestPresale', function (accounts) {
         PreSaleInstance = await PreSaleInterface.deployed(start, period, accounts[0], TokenInstance.address, 100);
         console.log(PreSaleInstance.address);
     });
-
-    // it("token's owner should be presaleContract", async () => {
-        
-    //     await TokenInstance.transferOwnership(PreSaleInstance.address)
-    //     let TokensOwner = await TokenInstance.owner.call();
-    //     console.log(PreSaleInstance.token.owner)
-    //     assert.equal(TokensOwner, PreSaleInstance.address);
-    // })
 
     it("buy tokens increase balance", async () => {
         // let oldBalance = await TokenInstance.balanceOf(accounts[1]);
@@ -38,6 +30,14 @@ contract('TestPresale', function (accounts) {
         // let newBalance = await TokenInstance.balanceOf(accounts[1]);
         // console.log(newBalance);
     })
+
+    // it("token's owner should be presaleContract", async () => {
+        
+    //     await TokenInstance.transferOwnership(PreSaleInstance.address)
+    //     let TokensOwner = await TokenInstance.owner.call();
+    //     console.log(PreSaleInstance.token.owner)
+    //     assert.equal(TokensOwner, PreSaleInstance.address);
+    // })
 
     // it("buy tokens restrict minimum invest", async () => {
     //     let oldBalance = TokenInstance.balanceOf(accounts[1]);
