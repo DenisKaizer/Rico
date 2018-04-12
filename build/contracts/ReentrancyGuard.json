@@ -1,14 +1,14 @@
 {
   "contractName": "ReentrancyGuard",
   "abi": [],
-  "bytecode": "0x606060405260008060006101000a81548160ff0219169083151502179055503415602857600080fd5b60358060356000396000f3006060604052600080fd00a165627a7a72305820f3d4541975da2b74c3a3ae0107e2b0bb233553c12e2fe5891e71b75b4a8ecdb30029",
-  "deployedBytecode": "0x6060604052600080fd00a165627a7a72305820f3d4541975da2b74c3a3ae0107e2b0bb233553c12e2fe5891e71b75b4a8ecdb30029",
+  "bytecode": "0x606060405260008060006101000a81548160ff0219169083151502179055503415602857600080fd5b60358060356000396000f3006060604052600080fd00a165627a7a7230582030dd60b9d39dfcb4dd982cb92cf1516ab504daa8164cdfd9a70a7a68af1d29b00029",
+  "deployedBytecode": "0x6060604052600080fd00a165627a7a7230582030dd60b9d39dfcb4dd982cb92cf1516ab504daa8164cdfd9a70a7a68af1d29b00029",
   "sourceMap": "54:691:2:-;;;190:5;159:36;;;;;;;;;;;;;;;;;;;;54:691;;;;;;;;;;;;;;",
   "deployedSourceMap": "54:691:2:-;;;;;",
   "source": "pragma solidity ^0.4.18;\n\nimport \"./RicoToken.sol\";\n\n\ncontract ReentrancyGuard {\n\n    /**\n     * @dev We use a single lock for the whole contract.\n     */\n    bool private reentrancy_lock = false;\n\n    /**\n     * @dev Prevents a contract from calling itself, directly or indirectly.\n     * @notice If you mark a function `nonReentrant`, you should also\n     * mark it `external`. Calling one nonReentrant function from\n     * another is not supported. Instead, you can implement a\n     * `private` function doing the actual work, and a `external`\n     * wrapper marked as `nonReentrant`.\n     */\n    modifier nonReentrant() {\n        require(!reentrancy_lock);\n        reentrancy_lock = true;\n        _;\n        reentrancy_lock = false;\n    }\n\n}\n\ncontract PreSale is Ownable, ReentrancyGuard {\n    using SafeMath for uint256;\n\n    // The token being sold\n    RicoToken public token;\n\n    // start and end timestamps where investments are allowed (both inclusive)\n    uint256 public startTime;\n    uint256 public endTime;\n\n    // Address where funds are transferred after success end of PreSale\n    address public wallet;\n\n    // How many token units a buyer gets per wei\n    uint256 public rate;\n\n    uint256 public minimumInvest; // in wei\n\n    uint256 public softCap; // in wei\n    uint256 public hardCap; // in wei\n\n    // investors => amount of money\n    mapping(address => uint) public balances;\n\n    // Amount of wei raised\n    uint256 public weiRaised;\n\n    // PreSale bonus in percent\n    uint256 bonusPercent;\n\n    /**\n     * event for token purchase logging\n     * @param purchaser who paid for the tokens\n     * @param beneficiary who got the tokens\n     * @param value weis paid for purchase\n     * @param amount amount of tokens purchased\n     */\n    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);\n\n    function PreSale(\n        uint256 _startTime,\n        uint256 _period,\n        address _wallet,\n        address _token,\n        uint256 _minimumInvest) public\n    {\n        require(_period != 0);\n        require(_token != address(0));\n\n        startTime = _startTime;\n        endTime = startTime + _period * 1 days;\n\n        wallet = _wallet;\n        token = RicoToken(_token);\n\n        // minimumInvest in wei\n        minimumInvest = _minimumInvest;\n\n        // 1 token for approximately 0.00015 eth\n        rate = 6667;\n\n        softCap = 150 * 1 ether;\n        hardCap = 1500 * 1 ether;\n        bonusPercent = 50;\n    }\n\n    // @return true if the transaction can buy tokens\n    modifier saleIsOn() {\n        bool withinPeriod = now >= startTime && now <= endTime;\n        require(withinPeriod);\n        _;\n    }\n\n    modifier isUnderHardCap() {\n        require(weiRaised < hardCap);\n        _;\n    }\n\n    modifier refundAllowed() {\n        require(weiRaised < softCap && now > endTime);\n        _;\n    }\n\n    // @return true if PreSale event has ended\n    function hasEnded() public view returns (bool) {\n        return now > endTime;\n    }\n\n    // Refund ether to the investors\n    function refund() public refundAllowed nonReentrant {\n        uint256 valueToReturn = balances[msg.sender];\n\n        // update states\n        balances[msg.sender] = 0;\n        weiRaised = weiRaised.sub(valueToReturn);\n\n        // burn tokens\n        uint256 tokens = getTokenAmount(valueToReturn);\n        tokens = tokens.add(tokens.mul(bonusPercent).div(100));\n        token.burnForRefund(msg.sender, tokens);\n\n        msg.sender.transfer(valueToReturn);\n    }\n\n    // Get amount of tokens\n    // @param value weis paid for tokens\n    function getTokenAmount(uint256 _value) internal view returns (uint256) {\n        return _value.mul(rate);\n    }\n\n    // Send weis to the wallet\n    function forwardFunds(uint256 _value) internal {\n        wallet.transfer(_value);\n    }\n\n    // Success finish of PreSale\n    function finishPreSale() public onlyOwner {\n        require(weiRaised >= softCap);\n        require(weiRaised >= hardCap || now > endTime);\n\n        if (now < endTime) {\n            endTime = now;\n        }\n\n        forwardFunds(this.balance);\n    }\n\n    // low level token purchase function\n    function buyTokens(address _beneficiary) saleIsOn isUnderHardCap nonReentrant public payable {\n        require(_beneficiary != address(0));\n        require(msg.value >= minimumInvest);\n\n        uint256 weiAmount = msg.value;\n        uint256 tokens = getTokenAmount(weiAmount);\n        tokens = tokens.add(tokens.mul(bonusPercent).div(100));\n\n        token.mint(_beneficiary, tokens);\n\n        // update states\n        weiRaised = weiRaised.add(weiAmount);\n        balances[_beneficiary] = balances[_beneficiary].add(weiAmount);\n\n        TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);\n    }\n\n    function() external payable {\n        buyTokens(msg.sender);\n    }\n}",
-  "sourcePath": "/Users/artemegerev/Desktop/Rico/contracts/PreSale.sol",
+  "sourcePath": "/Users/alexander/Desktop/Rico/contracts/PreSale.sol",
   "ast": {
-    "absolutePath": "/Users/artemegerev/Desktop/Rico/contracts/PreSale.sol",
+    "absolutePath": "/Users/alexander/Desktop/Rico/contracts/PreSale.sol",
     "exportedSymbols": {
       "PreSale": [
         606
@@ -32,7 +32,7 @@
         "src": "0:24:2"
       },
       {
-        "absolutePath": "/Users/artemegerev/Desktop/Rico/contracts/RicoToken.sol",
+        "absolutePath": "/Users/alexander/Desktop/Rico/contracts/RicoToken.sol",
         "file": "./RicoToken.sol",
         "id": 199,
         "nodeType": "ImportDirective",
@@ -5312,7 +5312,7 @@
     "src": "0:4846:2"
   },
   "legacyAST": {
-    "absolutePath": "/Users/artemegerev/Desktop/Rico/contracts/PreSale.sol",
+    "absolutePath": "/Users/alexander/Desktop/Rico/contracts/PreSale.sol",
     "exportedSymbols": {
       "PreSale": [
         606
@@ -5336,7 +5336,7 @@
         "src": "0:24:2"
       },
       {
-        "absolutePath": "/Users/artemegerev/Desktop/Rico/contracts/RicoToken.sol",
+        "absolutePath": "/Users/alexander/Desktop/Rico/contracts/RicoToken.sol",
         "file": "./RicoToken.sol",
         "id": 199,
         "nodeType": "ImportDirective",
@@ -10621,5 +10621,5 @@
   },
   "networks": {},
   "schemaVersion": "2.0.0",
-  "updatedAt": "2018-04-11T23:37:02.690Z"
+  "updatedAt": "2018-04-12T20:04:30.435Z"
 }

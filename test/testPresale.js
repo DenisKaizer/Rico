@@ -1,4 +1,5 @@
 const BigNumber = web3.BigNumber;
+const assert = require('assert').strict;
 
 var unix = Math.round(+new Date()/1000);
 
@@ -16,19 +17,16 @@ contract('TestPresale', function (accounts) {
 
         // Presale 
         var start = unix
-        var period = 100000
+        var period = 0
         PreSaleInstance = await PreSaleInterface.deployed(start, 
                                                           period, 
                                                           accounts[1], 
                                                           TokenInstance.address, 100);
-
         await TokenInstance.addAdmin(PreSaleInstance.address, {from: accounts[0]})
     });
 
     it("buy tokens increase balance", async () => {
-        console.log(0)
         let oldBalance = await TokenInstance.balanceOf(accounts[2]);
-        console.log(oldBalance);
     
         await PreSaleInstance.sendTransaction({value: 1e+17, from: accounts[2]})
         let newBalance = await TokenInstance.balanceOf(accounts[2]);
@@ -44,20 +42,45 @@ contract('TestPresale', function (accounts) {
         } catch (error) {
             err = error
         }
-        assert.ok(err instanceof Error) 
+        assert.ok(err instanceof Error);
     })
 
     it("buy tokens restrict underhardcap", async () => {
-        await PreSaleInstance.sendTransaction({value: 50 * 1e+9, from: accounts[2]});
+        console.log(web3.eth.getBalance(accounts[2]));
+        await PreSaleInstance.sendTransaction({value: 5 * 1e+18, from: accounts[2]})
+        console.log(web3.eth.getBalance(accounts[2]));
         try {
-            await PreSaleInstance.sendTransaction({value: 1400 * 1e+9, from: accounts[2]});
+            await PreSaleInstance.sendTransaction({value: 1500 * 1e+18, from: accounts[2]});
+        } catch (error) {
+            err = error;
+        }
+        console.log(web3.eth.getBalance(accounts[2]));
+        assert.ok(err instanceof Error);
+    })
+
+    it("buy tokens from zero address", async () => {
+        
+        try {
+            await PreSaleInstance.sendTransaction({ value: 50, from: 0 })
         } catch (error) {
             err = error
         }
-        assert.ok(err instanceof Error) 
+        assert.ok(err instanceof Error);
     })
 
+    it("refund works correct", async () => {
+        var oldBalance = web3.eth.getBalance(accounts[2]);
+        console.log(0);
+        await PreSaleInstance.sendTransaction({value: 1 * 1e+18, from: accounts[2]});
+        console.log(1);
+        await PreSaleInstance.refund({from: accounts[2]});
+        console.log(2);
+        var newBalance = web3.eth.getBalance(accounts[2]);
+        console.log(newBalance);
+        console.log(oldBalance);
+        assert.ok(oldBalance - newBalance < 1000000);
 
+    })
 
     // it("chck perms", async () => {
     //     let TokenInstance = await Token.deployed();
