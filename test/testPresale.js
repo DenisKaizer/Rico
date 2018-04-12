@@ -33,7 +33,8 @@ contract('TestPresale', function (accounts) {
         // let oldBalance = await TokenInstance.balanceOf(accounts[1]);
         // console.log(oldBalance);
         console.log(accounts[1])
-        await PreSaleInstance.sendTransaction({ value: 1e+17, from: accounts[1] })
+        await TokenInstance.addAdmin(PreSaleInstance.address, { from: accounts[0] })
+        await PreSaleInstance.send({ value: 1e+17, from: accounts[1] })
         // let newBalance = await TokenInstance.balanceOf(accounts[1]);
         // console.log(newBalance);
     })
