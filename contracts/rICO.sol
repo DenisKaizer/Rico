@@ -238,7 +238,7 @@ contract rICO is Ownable, ReentrancyGuard {
         forwardFunds(this.balance);
 
         // mint tokens to owner - wallet
-        token.mint(wallet, token.totalSupply().mul(42857).div(57143));
+        token.mint(wallet, token.totalSupply().mul(65).div(35));
         token.finishMinting();
 
         token.transferOwnership(owner);
