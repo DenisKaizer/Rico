@@ -2,7 +2,6 @@ pragma solidity ^0.4.18;
 
 import "./RicoToken.sol";
 
-
 contract ReentrancyGuard {
 
     /**
@@ -19,6 +18,7 @@ contract ReentrancyGuard {
      * wrapper marked as `nonReentrant`.
      */
     modifier nonReentrant() {
+
         require(!reentrancy_lock);
         reentrancy_lock = true;
         _;
@@ -28,6 +28,7 @@ contract ReentrancyGuard {
 }
 
 contract PreSale is Ownable, ReentrancyGuard {
+
     using SafeMath for uint256;
 
     // The token being sold
@@ -87,8 +88,8 @@ contract PreSale is Ownable, ReentrancyGuard {
         // minimumInvest in wei
         minimumInvest = _minimumInvest;
 
-        // 1 token for approximately 0.00015 eth
-        rate = 6667;
+        // 1 token for approximately 0,000666666666667 eth
+        rate = 1000;
 
         softCap = 150 * 1 ether;
         hardCap = 1500 * 1 ether;
@@ -182,3 +183,4 @@ contract PreSale is Ownable, ReentrancyGuard {
         buyTokens(msg.sender);
     }
 }
+
