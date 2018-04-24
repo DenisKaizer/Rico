@@ -1,12 +1,12 @@
 pragma solidity ^0.4.18;
 
-
 /**
  * @title ERC20Basic
  * @dev Simpler version of ERC20 interface
  * @dev see https://github.com/ethereum/EIPs/issues/179
  */
 contract ERC20Basic {
+
     function totalSupply() public view returns (uint256);
 
     function balanceOf(address who) public view returns (uint256);
@@ -22,6 +22,7 @@ contract ERC20Basic {
  * @dev see https://github.com/ethereum/EIPs/issues/20
  */
 contract ERC20 is ERC20Basic {
+
     function allowance(address owner, address spender) public view returns (uint256);
 
     function transferFrom(address from, address to, uint256 value) public returns (bool);
@@ -134,7 +135,6 @@ contract BasicToken is ERC20Basic {
 contract StandardToken is ERC20, BasicToken {
 
     mapping(address => mapping(address => uint256)) internal allowed;
-
 
     /**
      * @dev Transfer tokens from one address to another
@@ -342,6 +342,7 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
 
     //When transfer tokens decrease dividendPayments for sender and increase for receiver
     function transfer(address _to, uint256 _value) public returns (bool) {
+
         // balance before transfer
         uint256 oldBalanceFrom = balances[msg.sender];
 
@@ -356,6 +357,7 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+
         // balance before transfer
         uint256 oldBalanceFrom = balances[_from];
 
@@ -370,6 +372,7 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
     }
 
     function burn() public {
+
         address burner = msg.sender;
 
         // balance before burning tokens
@@ -388,9 +391,9 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
 
 contract RicoToken is DividendPayoutToken {
 
-    string public constant name = "Rico";
+    string public constant name = "CFE";
 
-    string public constant symbol = "Rico";
+    string public constant symbol = "CFE";
 
     uint8 public constant decimals = 18;
 
